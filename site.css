@@ -183,7 +183,25 @@ details > div { padding: 0 20px 16px; }
 details p, details li { font-size: 16px; }
 
 /* Wubee mark in the nav */
-.brand-icon { width: 28px; height: 28px; vertical-align: middle; margin-right: 8px; border-radius: 50%; }
+.brand-icon { width: 28px; height: 28px; vertical-align: middle; margin-right: 8px; border-radius: 7px; }
+
+/* Home: the nav sticks, and once the hero's W scrolls away a small live W replaces the icon. */
+#nav { position: sticky; top: 0; z-index: 20; }
+/* The bar's background spans the viewport (the nav itself is the narrow .wrap): fixed to the top, nav-tall. */
+#nav::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: 80px; z-index: -1; opacity: 0;
+  background: rgb(7 11 31 / 0.72); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.06);
+  transition-property: opacity; transition-duration: 200ms; transition-timing-function: var(--ease); }
+#nav.scrolled::before { opacity: 1; }
+.brand-mark { position: relative; display: inline-block; width: 28px; height: 28px; margin-right: 8px; flex: none; }
+.brand-mark .brand-icon { margin: 0; display: block; transition-property: opacity, scale; transition-duration: 200ms; transition-timing-function: var(--ease); }
+/* The canvas overhangs the 28px slot so the beads' glow isn't clipped. */
+.brand-mark canvas { position: absolute; inset: -8px; width: 44px; height: 44px; opacity: 0; scale: 0.6; pointer-events: none;
+  transition-property: opacity, scale; transition-duration: 250ms; transition-timing-function: var(--ease); }
+#nav.scrolled .brand-mark .brand-icon { opacity: 0; scale: 0.6; }
+#nav.scrolled .brand-mark canvas { opacity: 1; scale: 1; }
+.hero-mark { width: clamp(132px, 22vw, 200px); aspect-ratio: 1; margin: 0 auto 8px; }
+.hero-mark canvas { display: block; width: 100%; height: 100%; }
 
 /* The © line, 70% of the footer text */
 footer .copyright { font-size: 70%; }

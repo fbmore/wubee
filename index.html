@@ -24,8 +24,8 @@
   </script>
 </head>
 <body>
-  <header class="wrap nav">
-    <a class="brand" href="./"><img class="brand-icon" src="icon.png" alt="" width="28" height="28">Wubee</a>
+  <header class="wrap nav" id="nav">
+    <a class="brand" href="./"><span class="brand-mark"><img class="brand-icon" src="icon.png" alt="" width="28" height="28"><canvas id="navMark" aria-hidden="true"></canvas></span>Wubee</a>
     <nav aria-label="Site">
       <ul>
         <li><a class="link" href="play.html">Play</a></li>
@@ -38,6 +38,7 @@
 
   <main>
     <section class="wrap hero">
+      <div class="hero-mark"><canvas id="heroMark" role="img" aria-label="The Wubee W: glass beads joined by glowing threads"></canvas></div>
       <p class="kicker">Three games · One glass cube</p>
       <h1>Trace it. Spin it. <em>Pop it.</em></h1>
       <p class="lede">A word hunt that runs through the layers, tic-tac-toe in three dimensions, and a colour-popping puzzle where gravity follows your hand. Play the computer, a friend beside you, or anyone with a link.</p>
@@ -223,6 +224,16 @@
       });
     }
     import { tttDemo, wordsDemo, popDemo } from "./demo.js";
+    import { wMark } from "./wmark.js";
+    // The W builds itself above the hero; once it scrolls away, a small one builds in the sticky nav.
+    const heroMark = document.getElementById("heroMark"), nav = document.getElementById("nav");
+    wMark(heroMark);
+    const navW = wMark(document.getElementById("navMark"));
+    new IntersectionObserver(([e]) => {
+      const scrolled = !e.isIntersecting;
+      if (scrolled && !nav.classList.contains("scrolled")) navW.play();
+      nav.classList.toggle("scrolled", scrolled);
+    }, { rootMargin: "-72px 0px 0px 0px" }).observe(heroMark);
     tttDemo(document.getElementById("demoTtt"));
     popDemo(document.getElementById("demoPop"));
     const chips = document.getElementById("wordChips");
