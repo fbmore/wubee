@@ -4,7 +4,7 @@ import * as THREE from "three";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { hexOf, PALETTE, PRESETS, sortEvents, resolveColors } from "./game.js";
 import { makeBook, WordGame, progressKey, emptyProgress, RANKS, LAYER_BONUS, SIZE_LABEL } from "./wordcube.js";
-import { foldMatch, boardIndex, encodeWord, roleOf, starterFor, phaseFor, TURNS, WORD_SIZES } from "./wordmatch.js";
+import { foldMatch, boardIndex, encodeWord, roleOf, starterFor, phaseFor, TURNS, WORD_SIZES, RULES } from "./wordmatch.js";
 import { cloudSetup, queryGame, saveEvent, cloudGame } from "./cloud.js";
 
 const $ = (id) => document.getElementById(id);
@@ -816,6 +816,10 @@ function localDuo(size, fold) {
     Object.assign(events[0], { text: xName, color: duoPrefs.color });
     Object.assign(events[1], { text: duoPrefs.name2, color: duoPrefs.color2 });
   }
+  // Both players are on this client, so they play its rules.
+  for (const a of ["local-x", "local-o"]) {
+    if (!events.some((e) => e.kind === "rules" && e.author === a)) events.push(mk(a, a, "rules", { cell: RULES }));
+  }
   const persist = () => store.set(key, JSON.stringify({ id, size, events }));
   let cb;
   const be = {
@@ -965,6 +969,7 @@ function bootMatch(book, rawId, books = { en: book }) {
     }
     render();
     maybeAskToJoin();
+    maybeSendRules();
   }
 
   // ── events out ──
@@ -993,18 +998,27 @@ function bootMatch(book, rawId, books = { en: book }) {
     if (word.length < p.minLength) return reject(`Words need ${p.minLength}+ letters`, "wrong");
     const claim = state.claims.find((c) => c.word === word);
     if (claim) return reject(`${who(claim.by)} already found ${upper(word)}`, "already");
-    if (!(word in p.words)) {
+    const isExtra = !(word in p.words);
+    if (isExtra) {
       if (!p.extras.has(word)) return reject(`${upper(word)} isn’t in the list`, "wrong");
-      flash(path);
-      return reject(`${upper(word)} · extra word, doesn’t count here`, "extra");
+      if (!state.extrasCount) {
+        // Both clients must play the new rules, or the two sides would disagree about the score.
+        flash(path);
+        const other = nameOf(myRole() === "O" ? "X" : "O");
+        return reject(local ? `${upper(word)} · extra word, doesn’t count here`
+          : !bothJoined() ? `${upper(word)} · extra words count once ${other} joins`
+          : `${upper(word)} · extra word: ${other} needs the latest Wubee for it to count`, "extra");
+      }
     }
     if (!canPlay()) { toast(state.over ? "This game is over" : `It’s ${nameOf(state.turn)}’s turn`); return; }
     tracer.clear();
     const bonus = p.touchesEveryLayer(path), pts = p.points(word) + (bonus ? LAYER_BONUS : 0);
     seen.add(`${state.round}:${word}`);
-    sound.word(word.length, bonus); haptic(18);
+    if (isExtra) sound.extra(); else sound.word(word.length, bonus);
+    haptic(18);
     flash(path, hexFor(myRole()));
-    toast(bonus ? `+${pts} · through every layer!` : pts >= 6 ? `+${pts} · Brilliant!` : `+${pts}`);
+    toast(isExtra ? (bonus ? `+${pts} · extra word, through every layer!` : `+${pts} · extra word ${upper(word)}`)
+      : bonus ? `+${pts} · through every layer!` : pts >= 6 ? `+${pts} · Brilliant!` : `+${pts}`);
     busy = true;
     send({ kind: "word", text: encodeWord(word, path) }).finally(() => { busy = false; render(); });
   }
@@ -1060,7 +1074,7 @@ function bootMatch(book, rawId, books = { en: book }) {
     $("boardTitle").textContent = `${state.size}×${state.size}×${state.size} · Game ${state.round + 1}${local ? " · Two players" : ""}`;
     if (p) {
       const phase = phaseFor(p, new Set(state.claims.map((c) => c.word)));
-      $("wordCount").textContent = `${state.claims.length} of ${p.wordCount} words`;
+      $("wordCount").textContent = `${state.answerClaims} of ${p.wordCount} words`;
       $("phaseHint").textContent = "";
       $("phase").querySelectorAll(".wc-dot").forEach((d, k) => { d.classList.toggle("on", k <= phase); d.classList.toggle("now", k === phase); });
       if (!replaying && tracer) {
@@ -1210,7 +1224,7 @@ function bootMatch(book, rawId, books = { en: book }) {
     const p = state.puzzle;
     if (!p) return;
     $("wordsTitle").textContent = "Words found";
-    $("wordsTally").textContent = `${state.claims.length} / ${p.wordCount}`;
+    $("wordsTally").textContent = `${state.answerClaims} / ${p.wordCount}`;
     const legend = document.createElement("div");
     legend.className = "wc-legend";
     for (const r of ["X", "O"]) if (state.players[r]) {
@@ -1222,7 +1236,7 @@ function bootMatch(book, rawId, books = { en: book }) {
     const all = Object.keys(p.words);
     const lengths = [...new Set(all.map((w) => w.length))].sort((a, b) => a - b);
     $("wordsList").replaceChildren(legend, ...lengths.map((len) => {
-      const found = state.claims.filter((c) => c.word.length === len).sort((a, b) => a.word.localeCompare(b.word));
+      const found = state.claims.filter((c) => c.word.length === len && c.word in p.words).sort((a, b) => a.word.localeCompare(b.word));
       const total = all.filter((w) => w.length === len).length;
       const sec = document.createElement("section");
       sec.className = "wc-len";
@@ -1246,6 +1260,24 @@ function bootMatch(book, rawId, books = { en: book }) {
       sec.append(h, chips);
       return sec;
     }));
+    // Real words that aren't on the list: they score, but aren't part of the total to find.
+    const extras = state.claims.filter((c) => !(c.word in p.words)).sort((a, b) => a.word.localeCompare(b.word));
+    if (extras.length) {
+      const sec = document.createElement("section");
+      sec.className = "wc-len";
+      const h = document.createElement("h3");
+      h.textContent = `Extra words · ${extras.length}`;
+      const chips = document.createElement("div");
+      chips.className = "wc-chips";
+      for (const c of extras) {
+        const el = document.createElement("span");
+        el.className = `wc-chip by-${c.by}`; el.textContent = upper(c.word);
+        el.title = `${who(c.by)} · +${c.points}`;
+        chips.append(el);
+      }
+      sec.append(h, chips);
+      $("wordsList").append(sec);
+    }
     openSheet($("wordsSheet"));
   }
 
@@ -1272,6 +1304,14 @@ function bootMatch(book, rawId, books = { en: book }) {
   }
 
   // ── joining + renaming ──
+  /** Tell the other side which rules this client plays (once per game, after taking a seat). */
+  let rulesSent = false;
+  function maybeSendRules() {
+    if (!backend || backend.local || !backend.signedIn || !loaded || rulesSent || !myRole() || state.closedBy) return;
+    if (events.some((e) => e.kind === "rules" && e.author === backend.me && e.cell >= RULES)) return;
+    rulesSent = true;
+    send({ kind: "rules", cell: RULES });
+  }
   function maybeAskToJoin() {
     if (!backend || backend.local || !backend.signedIn || !loaded || asking) return;
     if (myRole() || bothJoined() || state.closedBy) return;

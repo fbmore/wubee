@@ -107,3 +107,35 @@ assert.notEqual(s.puzzle.tiles.join(""), p.tiles.join(""));
   assert.equal(st.ready.X, false); // nothing after close counts
 }
 console.log("wordmatch ok");
+
+// Rules 2: extra words score only once both seated players' clients have posted `rules` 2.
+{
+  const G = "rulesgame2";
+  const f = (list) => foldMatch(list, G, puzzleFor(G));
+  const list = [ev("ann", "join", { text: "Ann", cell: 3 }), ev("bob", "join", { text: "Bob" })];
+  const q = f(list).puzzle;
+  const extra = [...q.extras].find((w) => trace(w, q, 0));
+  assert.ok(extra, "an extra word is traceable in phase 1");
+  const word = (who) => ev(who, "word", { text: encodeWord(extra, trace(extra, q, 0)) });
+  // Only Ann's client plays rules 2 (Bob's is older): the extra word is ignored, the turn doesn't pass.
+  list.push(ev("ann", "rules", { cell: 2 }), word("ann"));
+  let r = f(list);
+  assert.equal(r.extrasCount, false);
+  assert.equal(r.claims.length, 0);
+  assert.equal(r.turn, "X");
+  // A spectator's rules don't count for a seat.
+  list.push(ev("cat", "rules", { cell: 2 }));
+  assert.equal(f(list).extrasCount, false);
+  // Bob updates: now it scores, takes the turn, and isn't one of the words to find.
+  list.push(ev("bob", "rules", { cell: 2 }), word("ann"));
+  r = f(list);
+  assert.equal(r.extrasCount, true);
+  assert.equal(r.claims.length, 1);
+  assert.equal(r.answerClaims, 0);
+  assert.ok(r.score.X >= q.points(extra));
+  assert.equal(r.turn, "O");
+  // Nobody can claim it twice.
+  list.push(word("bob"));
+  assert.equal(f(list).claims.length, 1);
+}
+console.log("rules 2 ok");

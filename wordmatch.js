@@ -4,6 +4,8 @@ import { LAYER_BONUS } from "./wordcube.js";
 import { resolveColors } from "./game.js";
 
 export const TURNS = 10;            // turns each per round (a word or a pass)
+/** Rules version this client plays. 2: extra words score, once both players' clients play 2+. */
+export const RULES = 2;
 export const WORD_SIZES = [3, 4, 5];
 
 /** Which practice board a round uses: the same on every device, a new one each rematch. */
@@ -64,7 +66,11 @@ export function foldMatch(events, gameId, puzzleFor) {
     size: 4, language: "en", sizeSet: false, players: {}, colors: { X: "coral", O: "teal" },
     round: 0, puzzle: null, claims: [], score: { X: 0, O: 0 }, turns: { X: 0, O: 0 }, passes: 0,
     turn: "X", over: null, resigned: null, wins: { X: 0, O: 0 }, ready: { X: false, O: false }, closedBy: null, says: [],
+    rulesV2: new Set(), extrasCount: false, answerClaims: 0,
   };
+  // Extra words score only when both seated players' clients play rules 2 (older ones would disagree).
+  const extrasOn = () => !!(s.players.X && s.players.O && s.rulesV2.has(s.players.X.id) && s.rulesV2.has(s.players.O.id));
+  const answers = () => s.claims.filter((c) => c.word in s.puzzle.words).length;
   const roleOfId = (id) => (s.players.X?.id === id ? "X" : s.players.O?.id === id ? "O" : null);
   const startRound = (r) => {
     s.round = r; s.puzzle = puzzleFor(s.size, r, s.language); s.claims = []; s.score = { X: 0, O: 0 };
@@ -78,7 +84,7 @@ export function foldMatch(events, gameId, puzzleFor) {
     s.turns[role]++;
     s.turn = other(role);
     if (s.passes >= 2) finish("passes");
-    else if (s.claims.length === s.puzzle.wordCount) finish("cleared");
+    else if (answers() === s.puzzle.wordCount) finish("cleared");
     else if (s.turns.X >= TURNS && s.turns.O >= TURNS) finish("turns");
   };
 
@@ -103,7 +109,7 @@ export function foldMatch(events, gameId, puzzleFor) {
       case "word": {
         if (!role || s.over || e.round !== s.round || s.turn !== role || !s.puzzle) break;
         const w = decodeWord(e.text);
-        if (!w || !(w.word in s.puzzle.words) || s.claims.some((c) => c.word === w.word)) break;
+        if (!w || !(w.word in s.puzzle.words || (extrasOn() && s.puzzle.extras.has(w.word))) || s.claims.some((c) => c.word === w.word)) break;
         const found = new Set(s.claims.map((c) => c.word));
         if (!validTrace(s.puzzle, w.word, w.path, phaseFor(s.puzzle, found))) break;
         const bonus = s.puzzle.touchesEveryLayer(w.path);
@@ -136,6 +142,10 @@ export function foldMatch(events, gameId, puzzleFor) {
         if (role) s.closedBy = role; // the host can cancel before anyone joins
         break;
       }
+      case "rules": {
+        if (e.cell >= 2) s.rulesV2.add(e.author);
+        break;
+      }
       case "say": {
         if (role) s.says.push({ author: e.author, text: e.text, ts: e.ts });
         break;
@@ -143,6 +153,8 @@ export function foldMatch(events, gameId, puzzleFor) {
     }
   }
   s.says = s.says.slice(-30);
+  s.extrasCount = extrasOn();
+  s.answerClaims = s.puzzle ? answers() : 0;
   s.colors = resolveColors(s.players.X?.color, s.players.O?.color);
   return s;
 }
