@@ -97,9 +97,9 @@ for (const kind of [{ daily: 0 }, { daily: 200 }, { size: 3, index: 0 }, { size:
 
 // Ranks + daily calendar.
 assert.equal(RANKS.at(-1).name, "Genius");
-assert.equal(book.today(new Date(2026, 9, 6, 23, 59)), 0);
-assert.equal(book.today(new Date(2026, 9, 7, 0, 1)), 1);
-assert.equal(book.today(new Date(2027, 2, 30, 12)), 175); // across a DST change
+assert.equal(book.today(new Date(Date.UTC(2026, 9, 6, 23, 59))), 0);
+assert.equal(book.today(new Date(Date.UTC(2026, 9, 7, 0, 1))), 1);  // days turn at UTC midnight
+assert.equal(book.today(new Date(Date.UTC(2027, 2, 30, 12))), 175);
 assert.equal(book.dateOfDay(1).getDate(), 7);
 assert.equal(progressKey({ daily: 4 }), "ttc.wc-d3-4");
 assert.equal(progressKey({ daily: 4 }, 4), "ttc.wc-d4");
