@@ -649,7 +649,7 @@ function bootPlay(book, kind) {
     if (f.kind === "found" || f.kind === "phaseUnlocked" || f.kind === "extra") flash(f.path);
     const text = {
       found: () => (f.bonus ? `+${f.points} · through every layer!` : f.points >= 6 ? `+${f.points} · Brilliant!` : `+${f.points}`),
-      extra: () => `${f.word.toUpperCase()} · extra word`,
+      extra: () => (f.bonus ? `+${f.points} · extra word, through every layer!` : `+${f.points} · extra word ${f.word.toUpperCase()}`),
       already: () => `Already found ${f.word.toUpperCase()}`,
       notAWord: () => `${f.word.toUpperCase()} isn’t in the list`,
       tooShort: () => `Words need ${puzzle.minLength}+ letters`,
@@ -716,12 +716,12 @@ function bootPlay(book, kind) {
       sec.append(h, chips);
       return sec;
     }));
-    // Real words that aren't on the list: kept, but they don't count toward the total.
+    // Real words that aren't on the list: they score, but aren't part of the total to find.
     if (game.extraCount) {
       const sec = document.createElement("section");
       sec.className = "wc-len";
       const h = document.createElement("h3");
-      h.textContent = `Extra words · ${game.extraCount} (not counted)`;
+      h.textContent = `Extra words · ${game.extraCount} · +${game.extraPoints} pts`;
       const chips = document.createElement("div");
       chips.className = "wc-chips";
       for (const w of [...game.progress.extra].sort()) {

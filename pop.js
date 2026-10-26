@@ -166,7 +166,7 @@ function buildCube(board) {
   for (const r of cube.rings) scene.remove(r);
   Object.assign(cube, { n: board.n, plates: [], orbs: new Map(), cellOf: new Map(), idAt: board.cells.map((o) => o.id), marks: new Map(), links: [], rings: [], shownPath: [], shownNext: "" });
   const n = board.n, side = PITCH * n;
-  cube.radius = n >= 5 ? 0.25 : 0.29;
+  cube.radius = (n >= 5 ? 0.25 : 0.29) * 0.8; // 20% smaller than the spacing, so orbs behind stay visible
   const plateGeo = new THREE.BoxGeometry(side, 0.02, side);
   for (let y = 0; y < n; y++) {
     const plate = new THREE.Mesh(plateGeo, plateMat);

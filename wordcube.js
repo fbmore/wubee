@@ -107,7 +107,7 @@ export const emptyProgress = () => ({ found: [], bonus: [], bestPath: [], bestWo
 // ───────────── one game ─────────────
 
 /**
- * Feedback kinds: { kind: "found", word, points, bonus } · { kind: "extra", word } · { kind: "already", word } ·
+ * Feedback kinds: { kind: "found", word, points, bonus } · { kind: "extra", word, points, bonus } · { kind: "already", word } ·
  * { kind: "notAWord", word } · { kind: "tooShort" } · { kind: "phaseUnlocked", phase }.
  * Cues (for sound): letter(step) · undo(step) · word(length, bonus) · extra · wrong · already · reveal.
  */
@@ -125,11 +125,14 @@ export class WordGame {
   get foundCount() { return this.progress.found.length; }
   get totalWords() { return this.puzzle.wordCount; }
   get currentWord() { return this.puzzle.wordFor(this.path); }
-  /** Real words found that aren't on the answer list: shown, but not scored or counted. */
+  /** Real words found that aren't on the answer list: they score, but aren't part of the total to find. */
   get extraCount() { return this.progress.extra.length; }
+  get extraPoints() { return this.progress.extra.reduce((s, w) => s + this.#pointsOf(w), 0); }
 
+  /** Every word you've found scores, extra words included. */
   get score() {
-    return this.progress.found.reduce((s, w) => s + this.puzzle.points(w), 0) + this.progress.bonus.length * LAYER_BONUS;
+    return [...this.progress.found, ...this.progress.extra].reduce((s, w) => s + this.puzzle.points(w), 0)
+      + this.progress.bonus.length * LAYER_BONUS;
   }
   get maxPoints() { return this.puzzle.maxPoints; }
   /** Share of the base points (bonuses can push you past 100%). */
@@ -205,26 +208,25 @@ export class WordGame {
     const word = this.currentWord, path = this.path;
     this.path = [];
     if (word.length < this.puzzle.minLength) { this.onCue("wrong"); return this.#say({ kind: "tooShort" }); }
-    if (!(word in this.puzzle.words)) {
+    // A real word that isn't an answer scores too, but isn't one of the words to find (no reveals).
+    const isExtra = !(word in this.puzzle.words);
+    if (isExtra) {
       if (!this.puzzle.extras.has(word)) { this.onCue("wrong"); return this.#say({ kind: "notAWord", word }); }
       if (this.progress.extra.includes(word)) { this.onCue("already"); return this.#say({ kind: "already", word }); }
-      this.progress = { ...this.progress, extra: [...this.progress.extra, word] };
-      this.onSave(this.progress);
-      this.onCue("extra");
-      return this.#say({ kind: "extra", word, path });
-    }
-    if (this.foundSet.has(word)) { this.onCue("already"); return this.#say({ kind: "already", word }); }
+    } else if (this.foundSet.has(word)) { this.onCue("already"); return this.#say({ kind: "already", word }); }
     const phaseBefore = this.unlockedPhase;
     const bonus = this.puzzle.touchesEveryLayer(path);
     const best = this.progress.bestWord ? this.#pointsOf(this.progress.bestWord) : 0;
+    const list = isExtra ? "extra" : "found";
     this.progress = {
       ...this.progress,
-      found: [...this.progress.found, word],
+      [list]: [...this.progress[list], word],
       bonus: bonus ? [...this.progress.bonus, word] : this.progress.bonus,
     };
     const points = this.puzzle.points(word) + (bonus ? LAYER_BONUS : 0);
     if (points > best) this.progress = { ...this.progress, bestWord: word, bestPath: path };
     this.onSave(this.progress);
+    if (isExtra) { this.onCue("extra"); return this.#say({ kind: "extra", word, points, bonus, path }); }
     this.onCue("word", word.length, bonus);
     const phase = this.unlockedPhase;
     if (phase > phaseBefore) {

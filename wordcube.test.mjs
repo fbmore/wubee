@@ -82,8 +82,11 @@ for (const kind of [{ daily: 0 }, { daily: 200 }, { size: 3, index: 0 }, { size:
   for (const c of trace(extra, p, 0)) game.tap(c);
   assert.equal(game.submit().kind, "extra");
   assert.deepEqual(saved.extra, [extra]);
-  assert.equal(game.score, 0);
+  // Extra words score (like any word, layer bonus included) but aren't part of the total to find.
+  assert.ok(game.score >= p.points(extra));
+  assert.equal(game.score, game.extraPoints);
   assert.equal(game.foundCount, 0);
+  assert.equal(game.unlockedPhase, 0);
   for (const c of trace(extra, p, 0)) game.tap(c);
   assert.equal(game.submit().kind, "already");
   assert.equal(game.extraCount, 1);
