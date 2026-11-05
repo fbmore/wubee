@@ -65,7 +65,7 @@ export function parsePuzzle(raw, n, kind, minLength, phaseBoxes, extras = "") {
 // ───────────── the puzzle book (puzzles.json) ─────────────
 
 const DAY_MS = 86_400_000;
-const localMidnight = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const utcMidnight = (d) => Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
 function startDate(book) {
   const [y, m, d] = (book?.dailyStart || "2026-10-06").split("-").map(Number);
   return new Date(y, m - 1, d);
@@ -74,9 +74,10 @@ function startDate(book) {
 export function makeBook(file) {
   return {
     file,
-    /** Today's daily number (day 0 = launch day), by local calendar day, same as iOS. */
+    /** Today's daily number (day 0 = launch day), by UTC day, same as iOS. */
     today(date = new Date()) {
-      return Math.max(0, Math.round((localMidnight(date) - startDate(file)) / DAY_MS));
+      const s = startDate(file);
+      return Math.max(0, Math.round((utcMidnight(date) - Date.UTC(s.getFullYear(), s.getMonth(), s.getDate())) / DAY_MS));
     },
     dateOfDay(day) { const s = startDate(file); return new Date(s.getFullYear(), s.getMonth(), s.getDate() + day); },
     practiceCount(size) { return file.practice[String(size)]?.length ?? 0; },

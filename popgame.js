@@ -39,14 +39,13 @@ export function popSeed(id, round) {
   return fnv1a64(id) ^ ((BigInt(round) * GOLDEN) & MASK);
 }
 
-/** Seed for the daily: 0xC0BE0000 + day index (days since 2026-10-06, local date). */
+/** Seed for the daily: 0xC0BE0000 + day index (days since 2026-10-06, UTC). */
 export const dailySeed = (day) => 0xC0BE0000n + BigInt(day);
 
+/** UTC days, like iOS: everyone has the same board at the same moment (Game Center's daily leaderboards reset then too). */
 export function dayIndex(date = new Date()) {
-  const start = new Date(2026, 9, 6);
-  const a = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
-  const b = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
-  return Math.max(0, Math.round((a - b) / 86400000));
+  const a = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+  return Math.max(0, Math.round((a - Date.UTC(2026, 9, 6)) / 86400000));
 }
 
 /* ── geometry ── */

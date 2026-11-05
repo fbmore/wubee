@@ -47,6 +47,7 @@ const fixed = (colors, n = 3) => { const b = makeBoard(n, 42n); b.cells = b.cell
 assert.equal(specialForChain(5), "bomb"); assert.equal(specialForChain(6), "beam"); assert.equal(specialForChain(9), "prism");
 assert.equal(gravityLines(3, 2)[0].join(), "0,3,6");
 assert.equal(fnv1a64("").toString(16), "cbf29ce484222325");
-assert.equal(dayIndex(new Date(2026, 9, 6)), 0);
-assert.equal(dayIndex(new Date(2026, 9, 9, 23)), 3);
+assert.equal(dayIndex(new Date(Date.UTC(2026, 9, 6))), 0);
+assert.equal(dayIndex(new Date(Date.UTC(2026, 9, 9, 23))), 3);
+assert.equal(dayIndex(new Date(Date.UTC(2026, 9, 10, 0, 1))), 4); // UTC midnight, wherever you are
 console.log(`popgame.test: all passed (${fx.cases.length} fixture cases, ${fx.cases.reduce((s, c) => s + c.steps.length, 0)} pops)`);
