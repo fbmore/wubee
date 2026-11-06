@@ -22,7 +22,9 @@
   { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
                  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
   </script>
-  <script src="analytics.js" async></script>
+  <!-- Home page visits and App Store clicks only (Foliàire Analytics: no cookies, honours Do Not Track). -->
+  <script>window.FOLIAIRE_SITE_ID = '07e3783d0eabe56fbc931ce2';</script>
+  <script async src="https://foliairestudio.com/analytics/foliaire.js"></script>
 </head>
 <body>
   <header class="wrap nav" id="nav">
@@ -44,7 +46,7 @@
       <h1>Trace it. Spin it. <em>Pop it.</em></h1>
       <p class="lede">A word hunt that runs through the layers, tic-tac-toe in three dimensions, and a colour-popping puzzle where gravity follows your hand. Play the computer, a friend beside you, or anyone with a link.</p>
       <div class="cta">
-        <a class="appstore" href="https://apps.apple.com/app/id6820312261" aria-label="Download Wubee on the App Store">
+        <a class="appstore" id="appstore-hero" href="https://apps.apple.com/app/id6820312261" aria-label="Download Wubee on the App Store">
           <img src="appstore-badge.svg" alt="Download on the App Store" width="144" height="48">
         </a>
         <a class="btn" id="testflight-hero" href="https://testflight.apple.com/join/hKMS96hD">Join the beta on TestFlight</a>
@@ -166,7 +168,7 @@
         <article class="card">
           <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3.5 5 6v5.5c0 4.4 3 7.8 7 9 4-1.2 7-4.6 7-9V6z"/></svg></div>
           <h3>Private by design</h3>
-          <p>No ads, no accounts, and no analytics or tracking in the app. Games with friends travel through Apple’s iCloud, and scores through Game Center if you use it; everything else stays with you. This website counts visits without cookies.</p>
+          <p>No ads, no accounts, and no analytics or tracking in the app. Games with friends travel through Apple’s iCloud, and scores through Game Center if you use it; everything else stays with you. This page counts visits and App Store clicks, without cookies.</p>
         </article>
         <article class="card">
           <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12 12 20 4 12V4h8z"/><circle cx="8.5" cy="8.5" r="1.3"/></svg></div>
@@ -186,7 +188,7 @@
       <p class="price">Free, with <em>Plus</em></p>
       <p>Every daily challenge and every game with a friend is free. <strong>Wubee Plus</strong> adds solo 4×4×4 and 5×5×5 cubes in all three games, every practice board and Cube Pop Zen: $1.99 a month, $9.99 a year with a free week, or $14.99 once. Try the app early on TestFlight, or play here in your browser. No ads, ever.</p>
       <div class="cta">
-        <a class="appstore" href="https://apps.apple.com/app/id6820312261" aria-label="Download Wubee on the App Store">
+        <a class="appstore" id="appstore-pricing" href="https://apps.apple.com/app/id6820312261" aria-label="Download Wubee on the App Store">
           <img src="appstore-badge.svg" alt="Download on the App Store" width="144" height="48">
         </a>
         <a class="btn" id="testflight" href="https://testflight.apple.com/join/hKMS96hD">Join the beta on TestFlight</a>
